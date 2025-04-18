@@ -1,10 +1,18 @@
 from django.forms import ModelForm
 from django import forms
 from .models import Item, Category
-from .models import Profile
 
-
-class ItemForm(ModelForm):
+class CategoryForm(ModelForm):
     class Meta:
-        model = Item
-        fields = ("title", "description", "image_url", "category", "condition")
+        model = Category
+        fields = ('name', 'slug')
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Введите название категории'
+            }),
+            'slug': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Введите slug (необязательно)'
+            })
+        }

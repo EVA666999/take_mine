@@ -1,18 +1,26 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render, redirect
 from .utils import get_page_context
 from .models import Item, Category
+from .forms import CategoryForm
+from django.contrib import messages
 
 def index(request):
     items = Item.objects.all()
     context = get_page_context(items, request)
     return render(request, "index.html", context)
 
-def create_category(request, slug):
-    category = get_object_or_404(Category, slug=slug)
-    items = Category.objects.select_related("category")[:10]
+def create_category(request):
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f'Категория "{category.name}" успешно создана!')
+            return redirect('home')  # или на страницу списка категорий
+    else:
+        form = CategoryForm()
+    
     context = {
-        "category": category,
-        "items": items,
+        'form': form,
+        'title': 'Создание новой категории'
     }
-    context.update(get_page_context(category.items.all(), request))
-    return render(request, "category/group_list.html", context)
+    return render(request, 'category/create_category.html', context)
