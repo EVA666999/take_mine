@@ -38,35 +38,49 @@
     <!-- Навигационное меню -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">
+            <a class="navbar-brand" href="{% url 'app:index' %}">
                 <i class="fas fa-exchange-alt"></i> Take Mine
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Мои объявления</a>
+                            <a class="nav-link position-relative" href="{% url 'app:exchange_proposal' item.id %}">
+                                <i class="fas fa-exchange-alt"></i> Обмен
+                                <span class="position-absolute top-1 start-80 translate-middle badge rounded-pill bg-danger">
+                                    3
+                                </span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Предложения обмена</a>
+                            <a class="nav-link" href="{% url 'users:profile' user.username %}">Мои объявления</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
+                            <a class="nav-link" href="{% url 'app:item_create' %}">Покажи свою вещь!</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'app:create_category' %}">Создать категорию</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-outline-danger" href="{% url 'users:logout' %}">Выйти</a>
                         </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:login' %}">Войти</a>
+                        <li class="nav-item me-2">
+                            <a class="btn btn-outline-primary" href="{% url 'users:login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Войти
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url users:register %}">Регистрация</a>
+                            <a class="btn btn-primary" href="{% url 'users:register' %}">
+                                <i class="fas fa-user-plus me-1"></i>Регистрация
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
-        </div>
     </nav>
 
     <!-- Основной контент -->

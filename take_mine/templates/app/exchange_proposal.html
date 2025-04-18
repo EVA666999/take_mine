@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Предложение обмена</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Скрытое поле для отправляемого предмета -->
+        <input type="hidden" name="sender_item_id" value="{{ sender_item.id }}">
+        
+        <!-- Выбор предмета получателя -->
+        <div class="mb-3">
+            <label for="ad_receiver" class="form-label">Выберите предмет для обмена</label>
+            <select name="ad_receiver" id="ad_receiver" class="form-select">
+                {% for item in items_for_exchange %}
+                    <option value="{{ item.id }}">{{ item.title }} - {{ item.category.name }}</option>
+                {% empty %}
+                    <option disabled>Нет доступных предметов для обмена</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Комментарий к предложению обмена -->
+        <div class="mb-3">
+            <label for="comment" class="form-label">Комментарий (необязательно)</label>
+            <textarea name="comment" id="comment" class="form-control" rows="4" placeholder="Опишите, что вы хотите обменять, или добавьте информацию..."></textarea>
+        </div>
+
+        <!-- Кнопка отправки формы -->
+        <button type="submit" class="btn btn-primary">Отправить предложение</button>
+    </form>
+</div>
+{% endblock %}

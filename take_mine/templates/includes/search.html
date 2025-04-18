@@ -1,0 +1,32 @@
+<form method="get" action="{% url 'app:index' %}" class="mb-4">
+    <div class="row g-2">
+        <div class="col-md-5">
+            <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Поиск по названию или описанию...">
+        </div>
+        <div class="col-md-3">
+            <select name="category" class="form-select">
+                <option value="">Все категории</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="condition" class="form-select">
+                <option value="">Любое состояние</option>
+                {% for key, value in conditions %}
+                    <option value="{{ key }}" {% if request.GET.condition == key %}selected{% endif %}>
+                        {{ value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search me-1"></i> Поиск
+            </button>
+        </div>
+    </div>
+</form>

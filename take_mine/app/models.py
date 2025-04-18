@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, max_length=100, default=slugify('category'))
