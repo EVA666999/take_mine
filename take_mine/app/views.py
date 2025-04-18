@@ -109,7 +109,7 @@ def create_exchange_proposal(request, item_id):
     
     if receiver_item.user == request.user:
         messages.error(request, 'Нельзя предложить обмен на свой же товар!')
-        return redirect('app:item_detail', item_id=item_id)
+        return redirect('app:index')
     
     if request.method == 'POST':
         sender_item_id = request.POST.get('sender_item_id')
@@ -122,7 +122,7 @@ def create_exchange_proposal(request, item_id):
         )
         
         messages.success(request, 'Предложение обмена отправлено!')
-        return redirect('app:index')
+        return redirect('app:exchanges')
         
     items = Item.objects.filter(user=request.user)
     return render(request, 'app/exchange_proposal.html', {
@@ -131,3 +131,57 @@ def create_exchange_proposal(request, item_id):
     })
 
 
+
+@login_required
+def exchanges_list(request):
+    view = request.GET.get('view', 'all')
+    status = request.GET.get('status', 'all')
+    
+    sent_proposals = ExchangeProposal.objects.filter(
+        ad_sender__user=request.user
+    ).select_related('ad_sender', 'ad_receiver', 'ad_sender__user', 'ad_receiver__user')
+    
+    received_proposals = ExchangeProposal.objects.filter(
+        ad_receiver__user=request.user
+    ).select_related('ad_sender', 'ad_receiver', 'ad_sender__user', 'ad_receiver__user')
+    
+    if status != 'all':
+        sent_proposals = sent_proposals.filter(status=status)
+        received_proposals = received_proposals.filter(status=status)
+    
+    context = {
+        'sent_proposals': sent_proposals,
+        'received_proposals': received_proposals,
+        'view': view,
+        'status': status if status else 'all',
+    }
+    
+    return render(request, 'app/exchanges_list.html', context)
+
+@login_required
+def accept_exchange(request, proposal_id):
+    proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
+    
+    if proposal.status != 'ожидает':
+        messages.error(request, 'Это предложение уже обработано')
+        return redirect('app:exchanges')
+    
+    proposal.status = 'принята'
+    proposal.save()
+    
+    messages.success(request, f'Вы приняли предложение обмена от {proposal.ad_sender.user.username}')
+    return redirect('app:exchanges')
+
+@login_required
+def reject_exchange(request, proposal_id):
+    proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
+    
+    if proposal.status != 'ожидает':
+        messages.error(request, 'Это предложение уже обработано')
+        return redirect('app:exchanges')
+    
+    proposal.status = 'отклонена'
+    proposal.save()
+    
+    messages.success(request, f'Вы отклонили предложение обмена от {proposal.ad_sender.user.username}')
+    return redirect('app:exchanges')

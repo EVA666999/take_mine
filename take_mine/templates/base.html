@@ -48,11 +48,13 @@
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link position-relative" href="{% url 'app:exchange_proposal' item.id %}">
+                            <a class="nav-link position-relative" href="{% url 'app:exchanges' %}">
                                 <i class="fas fa-exchange-alt"></i> Обмен
-                                <span class="position-absolute top-1 start-80 translate-middle badge rounded-pill bg-danger">
-                                    3
-                                </span>
+                                {% if pending_exchanges_count > 0 %}
+                                    <span class="position-absolute top-1 start-80 translate-middle badge rounded-pill bg-danger">
+                                        {{ pending_exchanges_count }}
+                                    </span>
+                                {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
@@ -81,6 +83,7 @@
                     {% endif %}
                 </ul>
             </div>
+        </div>
     </nav>
 
     <!-- Основной контент -->

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Мои предложения обмена</h1>
+    
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Фильтры</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'app:exchanges' %}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="view" class="form-label">Показывать</label>
+                        <select name="view" id="view" class="form-select">
+                            <option value="all" {% if view == "all" %}selected{% endif %}>Все предложения</option>
+                            <option value="incoming" {% if view == "incoming" %}selected{% endif %}>Только входящие</option>
+                            <option value="outgoing" {% if view == "outgoing" %}selected{% endif %}>Только исходящие</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Статус</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="all" {% if status == "all" %}selected{% endif %}>Все статусы</option>
+                            <option value="ожидает" {% if status == "ожидает" %}selected{% endif %}>Ожидает</option>
+                            <option value="принята" {% if status == "принята" %}selected{% endif %}>Принята</option>
+                            <option value="отклонена" {% if status == "отклонена" %}selected{% endif %}>Отклонена</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Применить фильтры
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Входящие предложения -->
+    {% if view != "outgoing" %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Входящие предложения</h3>
+        </div>
+        <div class="card-body">
+            {% if received_proposals %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>От кого</th>
+                                <th>Предлагаемый товар</th>
+                                <th>За ваш товар</th>
+                                <th>Комментарий</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proposal in received_proposals %}
+                                <tr>
+                                    <td>{{ proposal.ad_sender.user.username }}</td>
+                                    <td>{{ proposal.ad_sender.title }}</td>
+                                    <td>{{ proposal.ad_receiver.title }}</td>
+                                    <td>{{ proposal.comment|default:"—" }}</td>
+                                    <td>
+                                        <span class="badge {% if proposal.status == 'ожидает' %}bg-warning{% elif proposal.status == 'принята' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ proposal.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ proposal.created_at|date:"d.m.Y" }}</td>
+                                    <td>
+                                        {% if proposal.status == 'ожидает' %}
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'app:accept_exchange' proposal.id %}" class="btn btn-success">Принять</a>
+                                                <a href="{% url 'app:reject_exchange' proposal.id %}" class="btn btn-danger">Отклонить</a>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    У вас пока нет входящих предложений обмена.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Исходящие предложения -->
+    {% if view != "incoming" %}
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h3 class="mb-0">Исходящие предложения</h3>
+        </div>
+        <div class="card-body">
+            {% if sent_proposals %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Кому</th>
+                                <th>Ваш товар</th>
+                                <th>На товар</th>
+                                <th>Комментарий</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proposal in sent_proposals %}
+                                <tr>
+                                    <td>{{ proposal.ad_receiver.user.username }}</td>
+                                    <td>{{ proposal.ad_sender.title }}</td>
+                                    <td>{{ proposal.ad_receiver.title }}</td>
+                                    <td>{{ proposal.comment|default:"—" }}</td>
+                                    <td>
+                                        <span class="badge {% if proposal.status == 'ожидает' %}bg-warning{% elif proposal.status == 'принята' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ proposal.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ proposal.created_at|date:"d.m.Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Вы пока не отправили ни одного предложения обмена.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

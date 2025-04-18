@@ -3,33 +3,61 @@
 {% block content %}
 <div class="container">
     <h1 class="my-4">Предложение обмена</h1>
-
-    <form method="POST">
-        {% csrf_token %}
-        
-        <!-- Скрытое поле для отправляемого предмета -->
-        <input type="hidden" name="sender_item_id" value="{{ sender_item.id }}">
-        
-        <!-- Выбор предмета получателя -->
-        <div class="mb-3">
-            <label for="ad_receiver" class="form-label">Выберите предмет для обмена</label>
-            <select name="ad_receiver" id="ad_receiver" class="form-select">
-                {% for item in items_for_exchange %}
-                    <option value="{{ item.id }}">{{ item.title }} - {{ item.category.name }}</option>
-                {% empty %}
-                    <option disabled>Нет доступных предметов для обмена</option>
-                {% endfor %}
-            </select>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Вы хотите получить:</h5>
+                </div>
+                <div class="card-body">
+                    <h5>{{ receiver_item.title }}</h5>
+                    <p class="text-muted">{{ receiver_item.description|truncatechars:100 }}</p>
+                    <div class="badge bg-secondary">{{ receiver_item.category.name }}</div>
+                    <div class="mt-2">
+                        <small class="text-muted">Владелец: {{ receiver_item.user.username }}</small>
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Выберите что предложить в обмен:</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Выбор своего предмета для обмена -->
+                        <div class="mb-3">
+                            <label for="sender_item_id" class="form-label">Ваш предмет для обмена</label>
+                            <select name="sender_item_id" id="sender_item_id" class="form-select">
+                                {% for item in items %}
+                                    <option value="{{ item.id }}">{{ item.title }} - {{ item.category.name }}</option>
+                                {% empty %}
+                                    <option disabled>У вас нет предметов для обмена</option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-        <!-- Комментарий к предложению обмена -->
-        <div class="mb-3">
-            <label for="comment" class="form-label">Комментарий (необязательно)</label>
-            <textarea name="comment" id="comment" class="form-control" rows="4" placeholder="Опишите, что вы хотите обменять, или добавьте информацию..."></textarea>
+                        <!-- Комментарий к предложению обмена -->
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Комментарий (необязательно)</label>
+                            <textarea name="comment" id="comment" class="form-control" rows="4" placeholder="Опишите, почему вы хотите этот обмен, или добавьте дополнительную информацию..."></textarea>
+                        </div>
+
+                        <!-- Кнопка отправки формы -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-exchange-alt me-2"></i>Отправить предложение обмена
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <!-- Кнопка отправки формы -->
-        <button type="submit" class="btn btn-primary">Отправить предложение</button>
-    </form>
+    </div>
 </div>
 {% endblock %}
