@@ -1,18 +1,23 @@
-from django.shortcuts import render
-from rest_framework import filters, viewsets
+from django.shortcuts import render, get_object_or_404
+from rest_framework import filters, viewsets, status, permissions
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import serializers
+from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Q
+
 from app.models import Category, Item, ExchangeProposal
 from .paginator import CustomLimitOffsetPagination
-from .serializers import CategorySerializer, ItemSerializer, ExchangeProposalSerializer, MyProposalsSerializer
-from rest_framework.permissions import IsAdminUser
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, serializers, permissions
+from .serializers import (
+    CategorySerializer, 
+    ItemSerializer, 
+    ExchangeProposalSerializer, 
+    MyProposalsSerializer
+)
 from .permissions import IsAuthorOrAdminOrReadOnly, IsAdmin
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from app.models import ExchangeProposal
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -22,15 +27,18 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = CustomLimitOffsetPagination
     
-    filter_backends = [DjangoFilterBackend,
-                       filters.SearchFilter,
-                       filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
     
     filterset_fields = ['category__name', 'condition']
     
@@ -39,7 +47,32 @@ class ItemViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class MyItemsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Представление для отображения вещей
+    """
+    serializer_class = ItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomLimitOffsetPagination
+    
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    
+    filterset_fields = ['category__name', 'condition']
+    search_fields = ['title', 'description']
+    ordering_fields = ['created_at', 'title']
+
+    def get_queryset(self):
+        """
+        Возвращает только вещи текущего пользователя
+        """
+        return Item.objects.filter(user=self.request.user).order_by('-created_at')
         
+
 class ExchangeProposalViewSet(viewsets.ModelViewSet):
     queryset = ExchangeProposal.objects.all()
     serializer_class = ExchangeProposalSerializer
@@ -47,18 +80,24 @@ class ExchangeProposalViewSet(viewsets.ModelViewSet):
     pagination_class = CustomLimitOffsetPagination
 
     def perform_create(self, serializer):
-        
+        ad_sender = serializer.validated_data.get('ad_sender')
         ad_receiver = serializer.validated_data.get('ad_receiver')
+        
+        # Проверяем, принадлежит ли предмет-отправитель текущему пользователю
+        if ad_sender.user != self.request.user:
+            raise serializers.ValidationError(
+                "Вы можете предлагать обмен только своих предметов"
+            )
+        
+        # Проверяем, не принадлежит ли предмет-получатель текущему пользователю
         if ad_receiver.user == self.request.user:
             raise serializers.ValidationError(
                 "Нельзя предлагать обмен на свой собственный товар"
             )
-        ExchangeProposal.objects.filter(
-            ad_receiver=ad_receiver, 
-            status__in=['ожидает', 'принята']
-        ).update(status='забрали')
-        
+            
+        # Создаем предложение обмена
         serializer.save()
+
 
 class MyProposalsViewSet(viewsets.ModelViewSet):
     serializer_class = MyProposalsSerializer
@@ -78,8 +117,11 @@ class MyProposalsViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return ExchangeProposal.objects.filter(
             Q(ad_sender__user=user) | Q(ad_receiver__user=user)
+        ).exclude(
+            status='забрали'  # Исключаем предложения со статусом "забрали"
         ).order_by('-created_at')
     
+
 class AcceptProposalView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -88,22 +130,17 @@ class AcceptProposalView(APIView):
         
         # Проверка статуса предложения
         if proposal.status != 'ожидает':
-            return Response({'error': 'Предложение уже обработано'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Предложение уже обработано'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Проверка прав пользователя
         if proposal.ad_receiver.user != request.user:
-            return Response({'error': 'Вы не можете принять это предложение'}, status=status.HTTP_403_FORBIDDEN)
-        
-        # Проверяем наличие уже принятых предложений для этого товара
-        existing_accepted_proposals = ExchangeProposal.objects.filter(
-            ad_receiver=proposal.ad_receiver,
-            status='принята'
-        )
-        
-        if existing_accepted_proposals.exists():
-            return Response({
-                'error': 'Этот товар уже участвует в другом принятом обмене'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Вы не можете принять это предложение'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Обмен товарами между пользователями
         sender_item = proposal.ad_sender
@@ -119,7 +156,8 @@ class AcceptProposalView(APIView):
         
         # Закрываем все ожидающие предложения для этих товаров
         ExchangeProposal.objects.filter(
-            Q(ad_receiver=proposal.ad_receiver) | Q(ad_receiver=proposal.ad_sender),
+            Q(ad_sender=sender_item) | Q(ad_receiver=sender_item) |
+            Q(ad_sender=receiver_item) | Q(ad_receiver=receiver_item),
             status='ожидает'
         ).update(status='забрали')
         
@@ -128,16 +166,27 @@ class AcceptProposalView(APIView):
         proposal.save()
         
         return Response({'status': 'Обмен успешно завершен'})
+
+
 class RejectProposalView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         proposal = get_object_or_404(ExchangeProposal, pk=pk)
+        
         if proposal.status != 'ожидает':
-            return Response({'error': 'Предложение уже обработано'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Предложение уже обработано'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         if proposal.ad_receiver.user != request.user:
-            return Response({'error': 'Вы не можете отклонить это предложение'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'error': 'Вы не можете отклонить это предложение'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         proposal.status = 'отклонена'
         proposal.save()
+        
         return Response({'status': 'Предложение отклонено'})
-    

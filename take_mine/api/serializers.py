@@ -24,6 +24,7 @@ class ItemSerializer(serializers.ModelSerializer):
         return representation
 
     
+    
 class ExchangeProposalSerializer(serializers.ModelSerializer):
     ad_sender = serializers.SlugRelatedField(
         queryset=Item.objects.all(), 
@@ -36,15 +37,24 @@ class ExchangeProposalSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
-    def create(self, validated_data):
-        ad_receiver = validated_data.get('ad_receiver')
+    def validate(self, data):
+        """
+        Проверка прав пользователя
+        """
+        ad_sender = data.get('ad_sender')
+        ad_receiver = data.get('ad_receiver')
         
-        ExchangeProposal.objects.filter(
-            ad_receiver=ad_receiver, 
-            status__in=['ожидает', 'принята']
-        ).update(status='забрали')
+        if ad_sender.user != self.context['request'].user:
+            raise serializers.ValidationError(
+                "Вы можете предлагать обмен только своих предметов"
+            )
         
-        return super().create(validated_data)
+        if ad_receiver.user == self.context['request'].user:
+            raise serializers.ValidationError(
+                "Нельзя предлагать обмен на свой собственный товар"
+            )
+            
+        return data
     
     class Meta:
         model = ExchangeProposal
@@ -52,12 +62,14 @@ class ExchangeProposalSerializer(serializers.ModelSerializer):
             'id', 'ad_sender', 'ad_receiver', 
             'comment', 'status', 'created_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'status']
 
 
 class MyProposalsSerializer(serializers.ModelSerializer):
     ad_sender_title = serializers.CharField(source='ad_sender.title', read_only=True)
     ad_receiver_title = serializers.CharField(source='ad_receiver.title', read_only=True)
+    ad_sender_user = serializers.CharField(source='ad_sender.user.username', read_only=True)
+    ad_receiver_user = serializers.CharField(source='ad_receiver.user.username', read_only=True)
 
     class Meta:
         model = ExchangeProposal
@@ -66,8 +78,11 @@ class MyProposalsSerializer(serializers.ModelSerializer):
             'ad_sender', 
             'ad_receiver', 
             'ad_sender_title', 
-            'ad_receiver_title', 
+            'ad_receiver_title',
+            'ad_sender_user',
+            'ad_receiver_user',
             'status', 
             'created_at', 
             'comment'
         ]
+        read_only_fields = ['status']

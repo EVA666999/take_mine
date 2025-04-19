@@ -1,3 +1,4 @@
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 
 from .permissions import cannot_exchange_own_item, can_edit_item
@@ -161,29 +162,71 @@ def exchanges_list(request):
     return render(request, 'app/exchanges_list.html', context)
 
 @login_required
-def accept_exchange(request, proposal_id):
+def accept_proposal(request, proposal_id):
+    """Принятие предложения обмена"""
     proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
     
+    # Проверка статуса предложения
     if proposal.status != 'ожидает':
-        messages.error(request, 'Это предложение уже обработано')
-        return redirect('app:exchanges')
+        messages.error(request, 'Предложение уже обработано')
+        return redirect('my_proposals')
     
-    proposal.status = 'принята'
-    proposal.save()
+    # Проверка прав пользователя
+    if proposal.ad_receiver.user != request.user:
+        return HttpResponseForbidden("Вы не можете принять это предложение")
     
-    messages.success(request, f'Вы приняли предложение обмена от {proposal.ad_sender.user.username}')
-    return redirect('app:exchanges')
+    if request.method == 'POST':
+        # Обмен товарами между пользователями
+        sender_item = proposal.ad_sender
+        receiver_item = proposal.ad_receiver
+        
+        # Меняем владельцев товаров
+        sender_user = sender_item.user
+        receiver_user = receiver_item.user
+        
+        sender_item.user = receiver_user
+        receiver_item.user = sender_user
+        
+        # Сохраняем изменения
+        sender_item.save()
+        receiver_item.save()
+        
+        # Закрываем все ожидающие предложения для этих товаров
+        ExchangeProposal.objects.filter(
+            Q(ad_sender=sender_item) | Q(ad_receiver=sender_item) |
+            Q(ad_sender=receiver_item) | Q(ad_receiver=receiver_item),
+            status='ожидает'
+        ).update(status='забрали')
+        
+        # Принимаем текущее предложение
+        proposal.status = 'принята'
+        proposal.save()
+        
+        messages.success(request, 'Обмен успешно завершен!')
+        return redirect('my_proposals')
+    
+    return render(request, 'app/accept_proposal.html', {'proposal': proposal})
+
 
 @login_required
-def reject_exchange(request, proposal_id):
+def reject_proposal(request, proposal_id):
+    """Отклонение предложения обмена"""
     proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
     
+    # Проверка статуса предложения
     if proposal.status != 'ожидает':
-        messages.error(request, 'Это предложение уже обработано')
-        return redirect('app:exchanges')
+        messages.error(request, 'Предложение уже обработано')
+        return redirect('my_proposals')
     
-    proposal.status = 'отклонена'
-    proposal.save()
+    # Проверка прав пользователя
+    if proposal.ad_receiver.user != request.user:
+        return HttpResponseForbidden("Вы не можете отклонить это предложение")
     
-    messages.success(request, f'Вы отклонили предложение обмена от {proposal.ad_sender.user.username}')
-    return redirect('app:exchanges')
+    if request.method == 'POST':
+        proposal.status = 'отклонена'
+        proposal.save()
+        
+        messages.success(request, 'Предложение отклонено')
+        return redirect('my_proposals')
+    
+    return render(request, 'app/reject_proposal.html', {'proposal': proposal})
