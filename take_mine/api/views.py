@@ -85,14 +85,49 @@ class AcceptProposalView(APIView):
 
     def post(self, request, pk):
         proposal = get_object_or_404(ExchangeProposal, pk=pk)
+        
+        # Проверка статуса предложения
         if proposal.status != 'ожидает':
             return Response({'error': 'Предложение уже обработано'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Проверка прав пользователя
         if proposal.ad_receiver.user != request.user:
             return Response({'error': 'Вы не можете принять это предложение'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Проверяем наличие уже принятых предложений для этого товара
+        existing_accepted_proposals = ExchangeProposal.objects.filter(
+            ad_receiver=proposal.ad_receiver,
+            status='принята'
+        )
+        
+        if existing_accepted_proposals.exists():
+            return Response({
+                'error': 'Этот товар уже участвует в другом принятом обмене'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Обмен товарами между пользователями
+        sender_item = proposal.ad_sender
+        receiver_item = proposal.ad_receiver
+        
+        # Меняем владельцев товаров
+        sender_item.user = proposal.ad_receiver.user
+        receiver_item.user = proposal.ad_sender.user
+        
+        # Сохраняем изменения
+        sender_item.save()
+        receiver_item.save()
+        
+        # Закрываем все ожидающие предложения для этих товаров
+        ExchangeProposal.objects.filter(
+            Q(ad_receiver=proposal.ad_receiver) | Q(ad_receiver=proposal.ad_sender),
+            status='ожидает'
+        ).update(status='забрали')
+        
+        # Принимаем текущее предложение
         proposal.status = 'принята'
         proposal.save()
-        return Response({'status': 'Предложение принято'})
-
+        
+        return Response({'status': 'Обмен успешно завершен'})
 class RejectProposalView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
