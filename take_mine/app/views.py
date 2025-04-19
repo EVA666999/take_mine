@@ -15,7 +15,18 @@ def index(request):
     category_id = request.GET.get("category")
     condition = request.GET.get("condition")
 
-    items = Item.objects.all().order_by("-created_at")
+    # Получаем ID предметов, участвующих в принятых обменах
+    exchanged_items = ExchangeProposal.objects.filter(
+        status='принята'
+    ).values_list('ad_sender', 'ad_receiver')
+    
+    # Преобразуем список кортежей в плоский список ID
+    exchanged_items_ids = []
+    for sender_id, receiver_id in exchanged_items:
+        exchanged_items_ids.extend([sender_id, receiver_id])
+    
+    # Получаем все предметы, исключая те, которые участвовали в успешном обмене
+    items = Item.objects.exclude(id__in=exchanged_items_ids).order_by("-created_at")
 
     if query:
         items = items.filter(
@@ -163,50 +174,47 @@ def exchanges_list(request):
 
 @login_required
 def accept_proposal(request, proposal_id):
-    """Принятие предложения обмена"""
+    """
+    Принятие предложения обмена.
+    Логика: вещь доступна для обмена сколько угодно раз. 
+    Как только предложение принято - обе вещи помечаются статусом 'принято', 
+    остальные предложения по этим вещам становятся 'забрали'.
+    """
     proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
     
-    # Проверка статуса предложения
     if proposal.status != 'ожидает':
         messages.error(request, 'Предложение уже обработано')
-        return redirect('my_proposals')
+        return redirect('app:exchanges')
     
-    # Проверка прав пользователя
     if proposal.ad_receiver.user != request.user:
         return HttpResponseForbidden("Вы не можете принять это предложение")
     
     if request.method == 'POST':
-        # Обмен товарами между пользователями
         sender_item = proposal.ad_sender
         receiver_item = proposal.ad_receiver
         
-        # Меняем владельцев товаров
         sender_user = sender_item.user
         receiver_user = receiver_item.user
         
         sender_item.user = receiver_user
         receiver_item.user = sender_user
         
-        # Сохраняем изменения
         sender_item.save()
         receiver_item.save()
         
-        # Закрываем все ожидающие предложения для этих товаров
         ExchangeProposal.objects.filter(
             Q(ad_sender=sender_item) | Q(ad_receiver=sender_item) |
             Q(ad_sender=receiver_item) | Q(ad_receiver=receiver_item),
             status='ожидает'
         ).update(status='забрали')
         
-        # Принимаем текущее предложение
         proposal.status = 'принята'
         proposal.save()
         
         messages.success(request, 'Обмен успешно завершен!')
-        return redirect('my_proposals')
+        return redirect('app:exchanges')
     
     return render(request, 'app/accept_proposal.html', {'proposal': proposal})
-
 
 @login_required
 def reject_proposal(request, proposal_id):
@@ -216,7 +224,7 @@ def reject_proposal(request, proposal_id):
     # Проверка статуса предложения
     if proposal.status != 'ожидает':
         messages.error(request, 'Предложение уже обработано')
-        return redirect('my_proposals')
+        return redirect('app:exchanges')
     
     # Проверка прав пользователя
     if proposal.ad_receiver.user != request.user:
@@ -227,6 +235,6 @@ def reject_proposal(request, proposal_id):
         proposal.save()
         
         messages.success(request, 'Предложение отклонено')
-        return redirect('my_proposals')
+        return redirect('app:exchanges')
     
     return render(request, 'app/reject_proposal.html', {'proposal': proposal})

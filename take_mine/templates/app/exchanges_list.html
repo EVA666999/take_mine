@@ -77,8 +77,8 @@
                                     <td>
                                         {% if proposal.status == 'ожидает' %}
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{% url 'app:accept_exchange' proposal.id %}" class="btn btn-success">Принять</a>
-                                                <a href="{% url 'app:reject_exchange' proposal.id %}" class="btn btn-danger">Отклонить</a>
+                                                <a href="{% url 'app:accept_proposal' proposal.id %}" class="btn btn-success">Принять</a>
+                                                <a href="{% url 'app:reject_proposal' proposal.id %}" class="btn btn-danger">Отклонить</a>
                                             </div>
                                         {% endif %}
                                     </td>
