@@ -53,6 +53,10 @@ class ExchangeProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(
                 "Нельзя предлагать обмен на свой собственный товар"
             )
+        ExchangeProposal.objects.filter(
+            ad_receiver=ad_receiver, 
+            status__in=['ожидает', 'принята']
+        ).update(status='забрали')
         
         serializer.save()
 

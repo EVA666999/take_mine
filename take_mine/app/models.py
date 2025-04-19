@@ -46,6 +46,7 @@ class ExchangeProposal(models.Model):
         ('ожидает', 'Ожидает'),
         ('принята', 'Принята'),
         ('отклонена', 'Отклонена'),
+        ('забрали', 'Забрали'), # так надо!
     ]
     
     ad_sender = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='sent_proposals') # отправитель
@@ -61,4 +62,3 @@ class ExchangeProposal(models.Model):
         verbose_name = "Предложение обмена"
         verbose_name_plural = "Предложения обмена"
         ordering = ['-created_at']
-        unique_together = ['ad_sender', 'ad_receiver']

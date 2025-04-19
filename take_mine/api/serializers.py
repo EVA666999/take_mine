@@ -36,6 +36,16 @@ class ExchangeProposalSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    def create(self, validated_data):
+        ad_receiver = validated_data.get('ad_receiver')
+        
+        ExchangeProposal.objects.filter(
+            ad_receiver=ad_receiver, 
+            status__in=['ожидает', 'принята']
+        ).update(status='забрали')
+        
+        return super().create(validated_data)
+    
     class Meta:
         model = ExchangeProposal
         fields = [
