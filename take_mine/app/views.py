@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404, render, redirect
+
+from .permissions import cannot_exchange_own_item, can_edit_item
 from .utils import get_page_context
 from django.db.models import Q
 
@@ -69,9 +71,9 @@ def create_category(request):
 def item_edit(request, item_id):
     item = get_object_or_404(Item, id=item_id)
     
-    if request.user != item.user:
-        messages.error(request, 'У вас нет прав для редактирования этого объявления')
-        return redirect('app:index')
+    permission_check = can_edit_item(request, item)
+    if permission_check:
+        return permission_check
     
     if request.method == "POST":
         form = ItemForm(request.POST, files=request.FILES or None, instance=item)
@@ -107,9 +109,9 @@ def item_delete(request, item_id):
 def create_exchange_proposal(request, item_id):
     receiver_item = get_object_or_404(Item, id=item_id)
     
-    if receiver_item.user == request.user:
-        messages.error(request, 'Нельзя предложить обмен на свой же товар!')
-        return redirect('app:index')
+    permission_check = cannot_exchange_own_item(request, receiver_item)
+    if permission_check:
+        return permission_check
     
     if request.method == 'POST':
         sender_item_id = request.POST.get('sender_item_id')
