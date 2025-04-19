@@ -25,12 +25,14 @@ class ItemSerializer(serializers.ModelSerializer):
 
     
 class ExchangeProposalSerializer(serializers.ModelSerializer):
-    ad_sender = serializers.PrimaryKeyRelatedField(
+    ad_sender = serializers.SlugRelatedField(
         queryset=Item.objects.all(), 
+        slug_field='title',
         write_only=True
     )
-    ad_receiver = serializers.PrimaryKeyRelatedField(
+    ad_receiver = serializers.SlugRelatedField(
         queryset=Item.objects.all(), 
+        slug_field='title',
         write_only=True
     )
     
@@ -41,3 +43,21 @@ class ExchangeProposalSerializer(serializers.ModelSerializer):
             'comment', 'status', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+
+
+class MyProposalsSerializer(serializers.ModelSerializer):
+    ad_sender_title = serializers.CharField(source='ad_sender.title', read_only=True)
+    ad_receiver_title = serializers.CharField(source='ad_receiver.title', read_only=True)
+
+    class Meta:
+        model = ExchangeProposal
+        fields = [
+            'id', 
+            'ad_sender', 
+            'ad_receiver', 
+            'ad_sender_title', 
+            'ad_receiver_title', 
+            'status', 
+            'created_at', 
+            'comment'
+        ]

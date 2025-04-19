@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    'django_filters',
     "rest_framework_simplejwt",
     "app",
     "users",
@@ -140,14 +141,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
     ],
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=3600),  # Время жизни access токена (например, 60 минут)
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),     # Время жизни refresh токена (например, 1 день)
-    
-    # Дополнительные опции:
-    # 'ROTATE_REFRESH_TOKENS': False,  # Автоматическая ротация refresh токенов
-    # 'BLACKLIST_AFTER_ROTATION': False,  # Блокировка старых токенов после ротации
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=3600),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
 }

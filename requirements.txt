@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 django-cors-headers>=4.0.0
 djangorestframework-simplejwt
 djangorestframework
+django-filter
