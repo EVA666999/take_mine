@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt",
     "app",
     "users",
     "api",
@@ -133,3 +136,18 @@ LOGIN_URL = 'users:login'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=3600),  # Время жизни access токена (например, 60 минут)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),     # Время жизни refresh токена (например, 1 день)
+    
+    # Дополнительные опции:
+    # 'ROTATE_REFRESH_TOKENS': False,  # Автоматическая ротация refresh токенов
+    # 'BLACKLIST_AFTER_ROTATION': False,  # Блокировка старых токенов после ротации
+}
