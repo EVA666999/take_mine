@@ -61,3 +61,4 @@ class ExchangeProposal(models.Model):
         verbose_name = "Предложение обмена"
         verbose_name_plural = "Предложения обмена"
         ordering = ['-created_at']
+        unique_together = ['ad_sender', 'ad_receiver']
