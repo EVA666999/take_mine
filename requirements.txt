@@ -13,3 +13,4 @@ pytest
 pytest-django
 psycopg2-binary
 drf-yasg
+django-redis
