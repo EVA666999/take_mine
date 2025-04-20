@@ -24,8 +24,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     pagination_class = CustomLimitOffsetPagination
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class ItemViewSet(viewsets.ModelViewSet):
