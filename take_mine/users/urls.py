@@ -6,13 +6,11 @@ from . import views
 app_name = "users"
 
 urlpatterns = [
+    # Заменяем стандартный LoginView на кастомный
+    path("login/", views.user_login, name="login"),
+    # Остальные маршруты без изменений
     path("register/", views.register, name="register"),
     path("profile/<str:username>/", views.profile, name="profile"),
-    path(
-        "login/",
-        auth_views.LoginView.as_view(template_name="users/login.html"),
-        name="login",
-    ),
     path(
         "logout/",
         auth_views.LogoutView.as_view(template_name="users/logout.html"),
